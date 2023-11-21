@@ -49,9 +49,8 @@ export default class User {
     uniqueIdentifier: string,
     searchBy: "uuid" | "username" | "email" | "phone",
   ) => {
+    const connection = await getConnection();
     try {
-      const connection = await getConnection();
-
       const searchParams = {
         query: getUserByUUIDQuery,
         variables: [uniqueIdentifier],
@@ -70,8 +69,6 @@ export default class User {
       const { query, variables } = searchParams;
 
       const result = await connection.query(query, variables);
-
-      connection.release();
 
       const rawUser = (result.rowCount as number) > 0 ? result.rows[0] : null;
 
@@ -99,20 +96,19 @@ export default class User {
       err.statusCode = APIStatusCode.INTERNAL_SERVER_ERROR;
       err.code = error.code;
       throw err;
+    } finally {
+      connection.release();
     }
   };
 
   public saveRefreshToken = async () => {
+    const connection = await getConnection();
     try {
-      const connection = await getConnection();
-
       const result = await connection.query(updateRefreshTokenQuery, [
         this.refreshToken,
         this.refreshTokenExpiresAt,
         this.uuid,
       ]);
-
-      connection.release();
 
       if ((result.rowCount as number) < 1) {
         const err = new NodeError(
@@ -123,13 +119,14 @@ export default class User {
       }
     } catch (error) {
       throw error;
+    } finally {
+      connection.release();
     }
   };
 
   public save = async () => {
+    const connection = await getConnection();
     try {
-      const connection = await getConnection();
-
       const result = await connection.query(insertUserQuery, [
         this.name,
         this.username,
@@ -139,14 +136,7 @@ export default class User {
         this.refreshTokenExpiresAt,
       ]);
 
-      connection.release();
-
       if ((result.rowCount as number) > 0) {
-        // const result = await connection.query(getUserQuery, [
-        //   this.username,
-        //   this.email,
-        // ]);
-
         const user = result.rows[0];
 
         this.uuid = user.uuid;
@@ -166,13 +156,14 @@ export default class User {
         error.code,
       );
       throw err;
+    } finally {
+      connection.release();
     }
   };
 
   public update = async () => {
+    const connection = await getConnection();
     try {
-      const connection = await getConnection();
-
       const result = await connection.query(updateUserDetailsQuery, [
         this.name,
         this.username,
@@ -180,8 +171,6 @@ export default class User {
         this.dateOfBirth,
         this.uuid,
       ]);
-
-      connection.release();
 
       if ((result.rowCount as number) < 1) {
         const err = new NodeError(
@@ -197,21 +186,20 @@ export default class User {
         error.code,
       );
       throw err;
+    } finally {
+      connection.release();
     }
   };
 
   public updatePassword = async () => {
+    const connection = await getConnection();
     try {
-      const connection = await getConnection();
-
       const result = await connection.query(updatePaswordQuery, [
         this.passwordHash,
         this.refreshToken,
         this.refreshTokenExpiresAt,
         this.uuid,
       ]);
-
-      connection.release();
 
       if ((result.rowCount as number) < 1) {
         const err = new NodeError(
@@ -227,6 +215,8 @@ export default class User {
         error.code,
       );
       throw err;
+    } finally {
+      connection.release();
     }
   };
 }
